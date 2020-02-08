@@ -17,7 +17,6 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface as LegacyEventDis
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\LegacyEventDispatcherProxy;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
-use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use FOS\ElasticaBundle\Event\PostTransformEvent;
 use FOS\ElasticaBundle\Event\PreTransformEvent;
 
