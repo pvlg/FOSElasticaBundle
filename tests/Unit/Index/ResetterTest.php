@@ -14,10 +14,9 @@ namespace FOS\ElasticaBundle\Tests\Unit\Index;
 use Elastica\Client;
 use FOS\ElasticaBundle\Configuration\ConfigManager;
 use FOS\ElasticaBundle\Configuration\IndexConfig;
-use FOS\ElasticaBundle\Configuration\TypeConfig;
 use FOS\ElasticaBundle\Elastica\Index;
-use FOS\ElasticaBundle\Event\IndexResetEvent;
-use FOS\ElasticaBundle\Event\TypeResetEvent;
+use FOS\ElasticaBundle\Event\PostIndexResetEvent;
+use FOS\ElasticaBundle\Event\PreIndexResetEvent;
 use FOS\ElasticaBundle\Index\AliasProcessor;
 use FOS\ElasticaBundle\Index\IndexManager;
 use FOS\ElasticaBundle\Index\MappingBuilder;
@@ -267,33 +266,6 @@ class ResetterTest extends TestCase
         $this->mappingBuilder->expects($this->any())
             ->method('buildIndexMapping')
             ->with($config)
-            ->willReturn($mapping);
-
-        return $index;
-    }
-
-    private function mockType($typeName, $indexName, TypeConfig $typeConfig, IndexConfig $indexConfig, $mapping = [])
-    {
-        $this->configManager->expects($this->atLeast(1))
-            ->method('getTypeConfiguration')
-            ->with($indexName, $typeName)
-            ->will($this->returnValue($typeConfig));
-        $index = new Index($this->elasticaClient, $indexName);
-        $this->indexManager->expects($this->atLeast(2))
-            ->method('getIndex')
-            ->with($indexName)
-            ->willReturn($index);
-        $this->configManager->expects($this->atLeast(1))
-            ->method('getIndexConfiguration')
-            ->with($indexName)
-            ->will($this->returnValue($indexConfig));
-        $this->mappingBuilder->expects($this->any())
-            ->method('buildIndexMapping')
-            ->with($indexConfig)
-            ->willReturn($mapping);
-        $this->mappingBuilder->expects($this->once())
-            ->method('buildTypeMapping')
-            ->with($typeConfig)
             ->willReturn($mapping);
 
         return $index;

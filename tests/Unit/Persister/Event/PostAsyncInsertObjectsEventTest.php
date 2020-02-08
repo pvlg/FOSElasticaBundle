@@ -83,7 +83,7 @@ final class PostAsyncInsertObjectsEventTest extends TestCase
     {
         $expectedErrorMessage = 'theErrorMessage';
 
-        $event = new PostAsyncInsertObjectsEvent($this->createPagerMock(), $this->createObjectPersisterMock(), [], 'theErrorMessage', []);
+        $event = new PostAsyncInsertObjectsEvent($this->createPagerMock(), $this->createObjectPersisterMock(), 0, 'theErrorMessage', []);
 
         $this->assertSame($expectedErrorMessage, $event->getErrorMessage());
     }

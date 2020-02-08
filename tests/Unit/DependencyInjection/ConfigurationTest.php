@@ -213,9 +213,6 @@ class ConfigurationTest extends TestCase
                             'persistence' => [],
                         ],
                         'user_profile' => [
-                            '_parent' => [
-                                'type' => 'user',
-                            ],
                             'properties' => [
                                 'field1' => [],
                                 'field2' => [
@@ -322,7 +319,7 @@ class ConfigurationTest extends TestCase
         ]);
         $connection = $configuration['clients']['default']['connections'][0];
         $this->assertSame([400, 403, 404], $connection['http_error_codes']);
-        
+
         // test custom
         $configuration = $this->getConfigs([
             'clients' => [

@@ -11,6 +11,8 @@
 
 namespace FOS\ElasticaBundle\Event;
 
+use Symfony\Contracts\EventDispatcher\Event;
+
 class IndexEvent extends AbstractEvent
 {
     /**
@@ -18,18 +20,12 @@ class IndexEvent extends AbstractEvent
      */
     private $index;
 
-    /**
-     * @param string $index
-     */
-    public function __construct($index)
+    public function __construct(string $index)
     {
         $this->index = $index;
     }
 
-    /**
-     * @return string
-     */
-    public function getIndex()
+    public function getIndex(): string
     {
         return $this->index;
     }

@@ -9,17 +9,16 @@ cache:
 env:
   global:
     - PHPUNIT_FLAGS="-v"
-    - ES_VERSION="5.2.1"
+    - ES_VERSION="7.0.0"
 
 matrix:
   fast_finish: true
   include:
     # Minimum supported dependencies with min and max PHP version
-    - php: 7.1
+    - php: 7.2
       env: COMPOSER_FLAGS="--prefer-stable --prefer-lowest"
 
     # Latest supported dependencies with each PHP version
-    - php: 7.1
     - php: 7.2
     - php: 7.3
       env: COVERAGE=true PHPUNIT_FLAGS="-v --coverage-clover=coverage.clover"
@@ -42,8 +41,8 @@ install:
   - if [ "$SYMFONY_VERSION" != "" ]; then composer config extra.symfony.require ${SYMFONY_VERSION}; fi;
   - composer update ${COMPOSER_FLAGS} --prefer-dist --no-interaction
   - mkdir /tmp/elasticsearch
-  - wget -O - https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-${ES_VERSION}.tar.gz | tar xz --directory=/tmp/elasticsearch --strip-components=1
-  - /tmp/elasticsearch/bin/elasticsearch-plugin install -b mapper-attachments
+  - wget -O - https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-${ES_VERSION}-linux-x86_64.tar.gz | tar xz --directory=/tmp/elasticsearch --strip-components=1
+  - /tmp/elasticsearch/bin/elasticsearch-plugin install -b ingest-attachment
   - /tmp/elasticsearch/bin/elasticsearch --daemonize -Epath.data=/tmp
   - .travis/wait-for-elasticsearch.sh
 

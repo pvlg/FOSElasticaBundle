@@ -17,6 +17,9 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface as LegacyEventDis
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\LegacyEventDispatcherProxy;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use FOS\ElasticaBundle\Event\PostTransformEvent;
+use FOS\ElasticaBundle\Event\PreTransformEvent;
 
 /**
  * Maps Elastica documents with Doctrine objects
@@ -53,20 +56,14 @@ class ModelToElasticaAutoTransformer implements ModelToElasticaTransformerInterf
      * @param array                                                   $options
      * @param EventDispatcherInterface|LegacyEventDispatcherInterface $dispatcher
      */
-    public function __construct(array $options = [], /* EventDispatcherInterface */ $dispatcher = null)
+    public function __construct(array $options = [], ?EventDispatcherInterface $dispatcher = null)
     {
         $this->options = array_merge($this->options, $options);
         $this->dispatcher = $dispatcher;
-
-        if (class_exists(LegacyEventDispatcherProxy::class)) {
-            $this->dispatcher = LegacyEventDispatcherProxy::decorate($dispatcher);
-        }
     }
 
     /**
      * Set the PropertyAccessor.
-     *
-     * @param PropertyAccessorInterface $propertyAccessor
      */
     public function setPropertyAccessor(PropertyAccessorInterface $propertyAccessor)
     {
@@ -75,20 +72,12 @@ class ModelToElasticaAutoTransformer implements ModelToElasticaTransformerInterf
 
     /**
      * Transforms an object into an elastica object having the required keys.
-     *
-     * @param object $object the object to convert
-     * @param array  $fields the keys we want to have in the returned array
-     *
-     * @return Document
      **/
-    public function transform($object, array $fields)
+    public function transform(object $object, array $fields): Document
     {
         $identifier = $this->propertyAccessor->getValue($object, $this->options['identifier']);
-        if ($identifier && !is_scalar($identifier)) {
-            $identifier = (string) $identifier;
-        }
 
-        return $this->transformObjectToDocument($object, $fields, $identifier);
+        return $this->transformObjectToDocument($object, $fields, (string) $identifier);
     }
 
     /**
@@ -147,33 +136,18 @@ class ModelToElasticaAutoTransformer implements ModelToElasticaTransformerInterf
 
     /**
      * Transforms the given object to an elastica document.
-     *
-     * @param object $object     the object to convert
-     * @param array  $fields     the keys we want to have in the returned array
-     * @param string $identifier the identifier for the new document
-     *
-     * @return Document
      */
-    protected function transformObjectToDocument($object, array $fields, $identifier = '')
+    protected function transformObjectToDocument(object $object, array $fields, string $identifier = ''): Document
     {
-        $document = new Document($identifier, [], '', $this->options['index']);
+        $document = new Document($identifier, [], $this->options['index']);
 
         if ($this->dispatcher) {
-            $event = new TransformEvent($document, $fields, $object);
-            $this->dispatch($event, TransformEvent::PRE_TRANSFORM);
+            $this->dispatcher->dispatch($event = new PreTransformEvent($document, $fields, $object));
 
             $document = $event->getDocument();
         }
 
         foreach ($fields as $key => $mapping) {
-            if ('_parent' == $key) {
-                $property = (null !== $mapping['property']) ? $mapping['property'] : $mapping['type'];
-                $value = $this->propertyAccessor->getValue($object, $property);
-                $document->setParent($this->propertyAccessor->getValue($value, $mapping['identifier']));
-
-                continue;
-            }
-
             $path = isset($mapping['property_path']) ?
                 $mapping['property_path'] :
                 $key;
@@ -183,7 +157,7 @@ class ModelToElasticaAutoTransformer implements ModelToElasticaTransformerInterf
             $value = $this->propertyAccessor->getValue($object, $path);
 
             if (isset($mapping['type']) && in_array(
-                    $mapping['type'], ['nested', 'object']
+                    $mapping['type'], ['nested', 'object'], true
                 ) && isset($mapping['properties']) && !empty($mapping['properties'])
             ) {
                 /* $value is a nested document or object. Transform $value into
@@ -209,8 +183,7 @@ class ModelToElasticaAutoTransformer implements ModelToElasticaTransformerInterf
         }
 
         if ($this->dispatcher) {
-            $event = new TransformEvent($document, $fields, $object);
-            $this->dispatch($event, TransformEvent::POST_TRANSFORM);
+            $this->dispatcher->dispatch($event = new PostTransformEvent($document, $fields, $object));
 
             $document = $event->getDocument();
         }

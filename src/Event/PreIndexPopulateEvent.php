@@ -9,12 +9,8 @@
  * file that was distributed with this source code.
  */
 
-namespace FOS\ElasticaBundle\Provider;
+namespace FOS\ElasticaBundle\Event;
 
-interface IndexableInterface
+class PreIndexPopulateEvent extends IndexPopulateEvent
 {
-    /**
-     * Checks if an object passed should be indexable or not.
-     */
-    public function isObjectIndexable(string $indexName, object $object): bool;
 }

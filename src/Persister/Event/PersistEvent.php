@@ -1,4 +1,5 @@
 <?php
+
 namespace FOS\ElasticaBundle\Persister\Event;
 
 use FOS\ElasticaBundle\Persister\ObjectPersisterInterface;
@@ -15,7 +16,7 @@ interface PersistEvent
      * @return array
      */
     public function getOptions();
-    
+
     /**
      * @return ObjectPersisterInterface
      */

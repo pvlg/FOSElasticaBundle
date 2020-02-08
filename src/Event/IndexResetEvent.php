@@ -112,12 +112,7 @@ if (!class_exists(Event::class)) {
          */
         private $populating;
 
-        /**
-         * @param string $index
-         * @param bool   $populating
-         * @param bool   $force
-         */
-        public function __construct($index, $populating, $force)
+        public function __construct(string $index, bool $populating, bool $force)
         {
             parent::__construct($index);
 
@@ -128,7 +123,7 @@ if (!class_exists(Event::class)) {
         /**
          * @return bool
          */
-        public function isForce()
+        public function isForce(): bool
         {
             return $this->force;
         }
@@ -136,7 +131,7 @@ if (!class_exists(Event::class)) {
         /**
          * @return bool
          */
-        public function isPopulating()
+        public function isPopulating(): bool
         {
             return $this->populating;
         }
@@ -144,7 +139,7 @@ if (!class_exists(Event::class)) {
         /**
          * @param bool $force
          */
-        public function setForce($force)
+        public function setForce(bool $force)
         {
             $this->force = $force;
         }

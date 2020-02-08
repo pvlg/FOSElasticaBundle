@@ -1,9 +1,11 @@
 <?php
+
 namespace FOS\ElasticaBundle\Persister\Event;
 
 use FOS\ElasticaBundle\Event\AbstractEvent;
 use FOS\ElasticaBundle\Persister\ObjectPersisterInterface;
 use FOS\ElasticaBundle\Provider\PagerInterface;
+use Symfony\Contracts\EventDispatcher\Event;
 
 final class PostAsyncInsertObjectsEvent extends AbstractEvent implements PersistEvent
 {
@@ -32,7 +34,7 @@ final class PostAsyncInsertObjectsEvent extends AbstractEvent implements Persist
      */
     private $options;
 
-    public function __construct(PagerInterface $pager, ObjectPersisterInterface $objectPersister, $objectsCount, $errorMessage, array $options)
+    public function __construct(PagerInterface $pager, ObjectPersisterInterface $objectPersister, int $objectsCount, ?string $errorMessage, array $options)
     {
         $this->pager = $pager;
         $this->objectPersister = $objectPersister;
@@ -41,42 +43,27 @@ final class PostAsyncInsertObjectsEvent extends AbstractEvent implements Persist
         $this->options = $options;
     }
 
-    /**
-     * @return PagerInterface
-     */
-    public function getPager()
+    public function getPager(): PagerInterface
     {
         return $this->pager;
     }
 
-    /**
-     * @return array
-     */
-    public function getOptions()
+    public function getOptions(): array
     {
         return $this->options;
     }
 
-    /**
-     * @return ObjectPersisterInterface
-     */
-    public function getObjectPersister()
+    public function getObjectPersister(): ObjectPersisterInterface
     {
         return $this->objectPersister;
     }
 
-    /**
-     * @return null|string
-     */
-    public function getErrorMessage()
+    public function getErrorMessage(): ?string
     {
         return $this->errorMessage;
     }
 
-    /**
-     * @return int
-     */
-    public function getObjectsCount()
+    public function getObjectsCount(): int
     {
         return $this->objectsCount;
     }

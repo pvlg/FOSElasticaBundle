@@ -96,6 +96,7 @@ if (!class_exists(Event::class)) {
          * @Event("FOS\ElasticaBundle\Event\TransformEvent")
          */
         const PRE_TRANSFORM = 'fos_elastica.pre_transform';
+
         /**
          * @Event("FOS\ElasticaBundle\Event\TransformEvent")
          */
@@ -118,7 +119,7 @@ if (!class_exists(Event::class)) {
          * @param array  $fields
          * @param object $object
          */
-        public function __construct($document, array $fields, $object)
+        public function __construct(Document $document, array $fields, object $object)
         {
             $this->document = $document;
             $this->fields = $fields;
@@ -128,7 +129,7 @@ if (!class_exists(Event::class)) {
         /**
          * @return Document
          */
-        public function getDocument()
+        public function getDocument(): Document
         {
             return $this->document;
         }
@@ -136,7 +137,7 @@ if (!class_exists(Event::class)) {
         /**
          * @return array
          */
-        public function getFields()
+        public function getFields(): array
         {
             return $this->fields;
         }
@@ -144,7 +145,7 @@ if (!class_exists(Event::class)) {
         /**
          * @return object
          */
-        public function getObject()
+        public function getObject(): object
         {
             return $this->object;
         }
@@ -152,7 +153,7 @@ if (!class_exists(Event::class)) {
         /**
          * @param Document $document
          */
-        public function setDocument($document)
+        public function setDocument(Document $document)
         {
             $this->document = $document;
         }

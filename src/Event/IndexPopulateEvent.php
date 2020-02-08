@@ -121,6 +121,7 @@ if (!class_exists(Event::class)) {
          * @Event("FOS\ElasticaBundle\Event\IndexPopulateEvent")
          */
         const PRE_INDEX_POPULATE = 'elastica.index.index_pre_populate';
+
         /**
          * @Event("FOS\ElasticaBundle\Event\IndexPopulateEvent")
          */
@@ -134,12 +135,7 @@ if (!class_exists(Event::class)) {
          */
         private $options;
 
-        /**
-         * @param string $index
-         * @param bool   $reset
-         * @param array  $options
-         */
-        public function __construct($index, $reset, $options)
+        public function __construct(string $index, bool $reset, array $options)
         {
             parent::__construct($index);
 
@@ -147,38 +143,27 @@ if (!class_exists(Event::class)) {
             $this->options = $options;
         }
 
-        /**
-         * @return bool
-         */
-        public function isReset()
+        public function isReset(): bool
         {
             return $this->reset;
         }
 
-        /**
-         * @return array
-         */
-        public function getOptions()
+        public function getOptions(): array
         {
             return $this->options;
         }
 
-        /**
-         * @param bool $reset
-         */
-        public function setReset($reset)
+        public function setReset(bool $reset)
         {
             $this->reset = $reset;
         }
 
         /**
-         * @param string $name
-         *
          * @return mixed
          *
          * @throws \InvalidArgumentException if option does not exist
          */
-        public function getOption($name)
+        public function getOption(string $name)
         {
             if (!isset($this->options[$name])) {
                 throw new \InvalidArgumentException(sprintf('The "%s" option does not exist.', $name));

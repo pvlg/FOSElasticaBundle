@@ -12,11 +12,10 @@
 namespace FOS\ElasticaBundle\Command;
 
 use Elastica\Exception\Bulk\ResponseException as BulkResponseException;
-use FOS\ElasticaBundle\Event\IndexPopulateEvent;
-use FOS\ElasticaBundle\Event\TypePopulateEvent;
+use FOS\ElasticaBundle\Event\PostIndexPopulateEvent;
+use FOS\ElasticaBundle\Event\PreIndexPopulateEvent;
 use FOS\ElasticaBundle\Index\IndexManager;
 use FOS\ElasticaBundle\Index\Resetter;
-use FOS\ElasticaBundle\Persister\Event\Events;
 use FOS\ElasticaBundle\Persister\Event\OnExceptionEvent;
 use FOS\ElasticaBundle\Persister\Event\PostAsyncInsertObjectsEvent;
 use FOS\ElasticaBundle\Persister\Event\PostInsertObjectsEvent;
@@ -43,7 +42,7 @@ class PopulateCommand extends Command
     protected static $defaultName = 'fos:elastica:populate';
 
     /**
-     * @var EventDispatcherInterface|LegacyEventDispatcherInterface
+     * @var EventDispatcherInterface
      */
     private $dispatcher;
 
@@ -82,11 +81,6 @@ class PopulateCommand extends Command
         parent::__construct();
 
         $this->dispatcher = $dispatcher;
-
-        if (class_exists(LegacyEventDispatcherProxy::class)) {
-            $this->dispatcher = LegacyEventDispatcherProxy::decorate($dispatcher);
-        }
-
         $this->indexManager = $indexManager;
         $this->pagerProviderRegistry = $pagerProviderRegistry;
         $this->pagerPersisterRegistry = $pagerPersisterRegistry;
@@ -98,7 +92,6 @@ class PopulateCommand extends Command
         $this
             ->setName('fos:elastica:populate')
             ->addOption('index', null, InputOption::VALUE_OPTIONAL, 'The index to repopulate')
-            ->addOption('type', null, InputOption::VALUE_OPTIONAL, 'The type to repopulate')
             ->addOption('no-reset', null, InputOption::VALUE_NONE, 'Do not reset index before populating')
             ->addOption('no-delete', null, InputOption::VALUE_NONE, 'Do not delete index after populate')
             ->addOption('sleep', null, InputOption::VALUE_REQUIRED, 'Sleep time between persisting iterations (microseconds)', 0)
@@ -128,8 +121,7 @@ class PopulateCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $index = $input->getOption('index');
-        $type = $input->getOption('type');
+        $indexes = (null !== $index = $input->getOption('index')) ? [$index] : array_keys($this->indexManager->getAllIndexes());
         $reset = !$input->getOption('no-reset');
         $delete = !$input->getOption('no-delete');
 
@@ -150,83 +142,34 @@ class PopulateCommand extends Command
             /** @var QuestionHelper $dialog */
             $dialog = $this->getHelperSet()->get('question');
             if (!$dialog->ask($input, $output, new Question('<question>You chose to reset the index and start indexing with an offset. Do you really want to do that?</question>'))) {
-                return 0;
+                return 1;
             }
         }
 
-        if (null === $index && null !== $type) {
-            throw new \InvalidArgumentException('Cannot specify type option without an index.');
-        }
-
-        if (null !== $index) {
-            if (null !== $type) {
-                $this->populateIndexType($output, $index, $type, $reset, $options);
-            } else {
-                $this->populateIndex($output, $index, $reset, $options);
-            }
-        } else {
-            $indexes = array_keys($this->indexManager->getAllIndexes());
-
-            foreach ($indexes as $index) {
-                $this->populateIndex($output, $index, $reset, $options);
-            }
+        foreach ($indexes as $index) {
+            $this->populateIndex($output, $index, $reset, $options);
         }
 
         return 0;
     }
 
     /**
-     * Recreates an index, populates its types, and refreshes the index.
-     *
-     * @param OutputInterface $output
-     * @param string          $index
-     * @param bool            $reset
-     * @param array           $options
+     * Recreates an index, populates it, and refreshes it.
      */
-    private function populateIndex(OutputInterface $output, $index, $reset, $options)
+    private function populateIndex(OutputInterface $output, string $index, bool $reset, $options): void
     {
-        $event = new IndexPopulateEvent($index, $reset, $options);
-        $this->dispatch($event, IndexPopulateEvent::PRE_INDEX_POPULATE);
+        $this->dispatcher->dispatch($event = new PreIndexPopulateEvent($index, $reset, $options));
 
-        if ($event->isReset()) {
+        if ($reset = $event->isReset()) {
             $output->writeln(sprintf('<info>Resetting</info> <comment>%s</comment>', $index));
             $this->resetter->resetIndex($index, true);
         }
 
-        $types = array_keys($this->pagerProviderRegistry->getIndexProviders($index));
-        foreach ($types as $type) {
-            $this->populateIndexType($output, $index, $type, false, $event->getOptions());
-        }
-
-        $this->dispatch($event, IndexPopulateEvent::POST_INDEX_POPULATE);
-
-        $this->refreshIndex($output, $index);
-    }
-
-    /**
-     * Deletes/remaps an index type, populates it, and refreshes the index.
-     *
-     * @param OutputInterface $output
-     * @param string          $index
-     * @param string          $type
-     * @param bool            $reset
-     * @param array           $options
-     */
-    private function populateIndexType(OutputInterface $output, $index, $type, $reset, $options)
-    {
-        $event = new TypePopulateEvent($index, $type, $reset, $options);
-        $this->dispatch($event, TypePopulateEvent::PRE_TYPE_POPULATE);
-
-        if ($event->isReset()) {
-            $output->writeln(sprintf('<info>Resetting</info> <comment>%s/%s</comment>', $index, $type));
-            $this->resetter->resetIndexType($index, $type);
-        }
-
         $offset = 1 < $options['first_page'] ? ($options['first_page'] - 1) * $options['max_per_page'] : 0;
-        $loggerClosure = ProgressClosureBuilder::build($output, 'Populating', $index, $type, $offset);
+        $loggerClosure = ProgressClosureBuilder::build($output, 'Populating', $index, $offset);
 
         $this->dispatcher->addListener(
-            Events::ON_EXCEPTION,
+            OnExceptionEvent::class,
             function(OnExceptionEvent $event) use ($loggerClosure) {
                 $loggerClosure(
                     count($event->getObjects()),
@@ -237,48 +180,44 @@ class PopulateCommand extends Command
         );
 
         $this->dispatcher->addListener(
-            Events::POST_INSERT_OBJECTS,
+            PostInsertObjectsEvent::class,
             function(PostInsertObjectsEvent $event) use ($loggerClosure) {
                 $loggerClosure(count($event->getObjects()), $event->getPager()->getNbResults());
             }
         );
 
         $this->dispatcher->addListener(
-            Events::POST_ASYNC_INSERT_OBJECTS,
+            PostAsyncInsertObjectsEvent::class,
             function(PostAsyncInsertObjectsEvent $event) use ($loggerClosure) {
                 $loggerClosure($event->getObjectsCount(), $event->getPager()->getNbResults(), $event->getErrorMessage());
             }
         );
 
         if ($options['ignore_errors']) {
-            $this->dispatcher->addListener(Events::ON_EXCEPTION, function(OnExceptionEvent $event) {
-                if ($event->getException() instanceof BulkResponseException) {
-                    $event->setIgnore(true);
+            $this->dispatcher->addListener(
+                OnExceptionEvent::class,
+                function(OnExceptionEvent $event) {
+                    if ($event->getException() instanceof BulkResponseException) {
+                        $event->setIgnore(true);
+                    }
                 }
-            });
+            );
         }
 
-        $provider = $this->pagerProviderRegistry->getProvider($index, $type);
-
+        $provider = $this->pagerProviderRegistry->getProvider($index);
         $pager = $provider->provide($options);
 
-        $options['indexName'] = $index;
-        $options['typeName'] = $type;
+        $this->pagerPersister->insert($pager, array_merge($options, ['indexName' => $index]));
 
-        $this->pagerPersister->insert($pager, $options);
-
-        $this->dispatch($event, TypePopulateEvent::POST_TYPE_POPULATE);
+        $this->dispatcher->dispatch(new PostIndexPopulateEvent($index, $reset, $options));
 
         $this->refreshIndex($output, $index);
     }
 
     /**
      * Refreshes an index.
-     *
-     * @param OutputInterface $output
-     * @param string          $index
      */
-    private function refreshIndex(OutputInterface $output, $index)
+    private function refreshIndex(OutputInterface $output, string $index): void
     {
         $output->writeln(sprintf('<info>Refreshing</info> <comment>%s</comment>', $index));
         $this->indexManager->getIndex($index)->refresh();

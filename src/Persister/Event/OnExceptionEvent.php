@@ -1,9 +1,11 @@
 <?php
+
 namespace FOS\ElasticaBundle\Persister\Event;
 
 use FOS\ElasticaBundle\Event\AbstractEvent;
 use FOS\ElasticaBundle\Persister\ObjectPersisterInterface;
 use FOS\ElasticaBundle\Provider\PagerInterface;
+use Symfony\Contracts\EventDispatcher\Event;
 
 final class OnExceptionEvent extends AbstractEvent implements PersistEvent
 {
@@ -38,10 +40,10 @@ final class OnExceptionEvent extends AbstractEvent implements PersistEvent
     private $ignore;
 
     public function __construct(
-        PagerInterface $pager, 
-        ObjectPersisterInterface $objectPersister, 
-        \Exception $exception, 
-        array $objects, 
+        PagerInterface $pager,
+        ObjectPersisterInterface $objectPersister,
+        \Exception $exception,
+        array $objects,
         array $options
     ) {
         $this->pager = $pager;
@@ -53,66 +55,42 @@ final class OnExceptionEvent extends AbstractEvent implements PersistEvent
         $this->objects = $objects;
     }
 
-    /**
-     * @return PagerInterface
-     */
-    public function getPager()
+    public function getPager(): PagerInterface
     {
         return $this->pager;
     }
 
-    /**
-     * @return array
-     */
-    public function getOptions()
+    public function getOptions(): array
     {
         return $this->options;
     }
 
-    /**
-     * @return ObjectPersisterInterface
-     */
-    public function getObjectPersister()
+    public function getObjectPersister(): ObjectPersisterInterface
     {
         return $this->objectPersister;
     }
 
-    /**
-     * @return \Exception
-     */
-    public function getException()
+    public function getException(): \Exception
     {
         return $this->exception;
     }
 
-    /**
-     * @param \Exception $exception
-     */
     public function setException(\Exception $exception)
     {
         $this->exception = $exception;
     }
 
-    /**
-     * @return bool
-     */
-    public function isIgnored()
+    public function isIgnored(): bool
     {
         return $this->ignore;
     }
 
-    /**
-     * @param bool $ignore
-     */
-    public function setIgnore($ignore)
+    public function setIgnore(bool $ignore)
     {
-        $this->ignore = !!$ignore;
+        $this->ignore = $ignore;
     }
 
-    /**
-     * @return array
-     */
-    public function getObjects()
+    public function getObjects(): array
     {
         return $this->objects;
     }
